@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { RadarDish3D } from '@/components/RadarDish3D';
 import { MotorControlPanel } from '@/components/MotorControlPanel';
+import { ElevationControlPanel } from '@/components/ElevationControlPanel';
 import { DataVisualization } from '@/components/DataVisualization';
 import { StatusPanel } from '@/components/StatusPanel';
 import { NetworkPanel } from '@/components/NetworkPanel';
@@ -12,16 +14,21 @@ const Index = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'wifi' | 'bluetooth'>('wifi');
   const [isConnected, setIsConnected] = useState(true);
+  const [controlMode, setControlMode] = useState<'azimuth' | 'elevation'>('azimuth');
 
   // Add motor simulation variables similar to Processing code
-  const [azimuthSpeed, setAzimuthSpeed] = useState(0); // Current speed percentage
-  const [targetAzimuthSpeed, setTargetAzimuthSpeed] = useState(0); // Target speed
-  const [azimuthAcceleration] = useState(0.2); // Speed change rate
+  const [azimuthSpeed, setAzimuthSpeed] = useState(0);
+  const [targetAzimuthSpeed, setTargetAzimuthSpeed] = useState(0);
+  const [azimuthAcceleration] = useState(0.2);
+
+  // Elevation simulation variables
+  const [targetElevation, setTargetElevation] = useState(45);
+  const [elevationSmoothing] = useState(0.1);
 
   // Simulate motor movement like in Processing code
   useEffect(() => {
     const interval = setInterval(() => {
-      // Smoothly adjust speed toward target (like Processing's updateAzimuth)
+      // Update azimuth motor simulation
       setAzimuthSpeed(prevSpeed => {
         let newSpeed = prevSpeed;
         if (Math.abs(newSpeed - targetAzimuthSpeed) > azimuthAcceleration) {
@@ -36,14 +43,13 @@ const Index = () => {
         return newSpeed;
       });
 
-      // Update azimuth angle based on speed (like Processing code)
+      // Update azimuth angle based on speed
       if (azimuthSpeed !== 0) {
         setAzimuth(prevAzimuth => {
           const maxRPM = 30.0;
-          const angleIncrement = (azimuthSpeed * maxRPM) / 600.0; // Similar to Processing scaling
+          const angleIncrement = (azimuthSpeed * maxRPM) / 600.0;
           let newAzimuth = prevAzimuth + angleIncrement;
           
-          // Keep angle within 0-360 range
           newAzimuth = newAzimuth % 360;
           if (newAzimuth < 0) newAzimuth += 360;
           
@@ -51,18 +57,34 @@ const Index = () => {
         });
       }
 
+      // Update elevation simulation
+      setElevation(prevElevation => {
+        if (Math.abs(targetElevation - prevElevation) > 0.1) {
+          return prevElevation + (targetElevation - prevElevation) * elevationSmoothing;
+        }
+        return targetElevation;
+      });
+
       // Scanning mode simulation
-      if (isScanning && azimuthSpeed === 0) {
-        setAzimuth(prevAzimuth => {
-          let newAzimuth = prevAzimuth + 0.5; // Slow automatic scan
-          newAzimuth = newAzimuth % 360;
-          return newAzimuth;
-        });
+      if (isScanning) {
+        if (controlMode === 'azimuth' && azimuthSpeed === 0) {
+          setAzimuth(prevAzimuth => {
+            let newAzimuth = prevAzimuth + 0.5;
+            newAzimuth = newAzimuth % 360;
+            return newAzimuth;
+          });
+        } else if (controlMode === 'elevation') {
+          setElevation(prevElevation => {
+            let newElevation = prevElevation + 0.2;
+            if (newElevation > 90) newElevation = 0;
+            return newElevation;
+          });
+        }
       }
-    }, 100); // Update every 100ms
+    }, 100);
 
     return () => clearInterval(interval);
-  }, [azimuthSpeed, targetAzimuthSpeed, azimuthAcceleration, isScanning]);
+  }, [azimuthSpeed, targetAzimuthSpeed, azimuthAcceleration, isScanning, controlMode, targetElevation, elevationSmoothing]);
 
   const handleAzimuthChange = (value: number) => {
     setAzimuth(value);
@@ -70,19 +92,20 @@ const Index = () => {
   };
 
   const handleElevationChange = (value: number) => {
-    setElevation(value);
-    console.log(`Elevation changed to: ${value}°`);
+    setTargetElevation(value);
+    console.log(`Elevation target changed to: ${value}°`);
   };
 
   const handleScanToggle = () => {
     setIsScanning(!isScanning);
     console.log(`Scanning ${!isScanning ? 'started' : 'stopped'}`);
     
-    // When scanning starts, set a moderate speed
-    if (!isScanning) {
-      setTargetAzimuthSpeed(20); // 20% speed for scanning
-    } else {
-      setTargetAzimuthSpeed(0); // Stop when scanning stops
+    if (controlMode === 'azimuth') {
+      if (!isScanning) {
+        setTargetAzimuthSpeed(20);
+      } else {
+        setTargetAzimuthSpeed(0);
+      }
     }
   };
 
@@ -107,24 +130,59 @@ const Index = () => {
               {isConnected ? 'Connected' : 'Disconnected'}
             </div>
             <div className="mt-2 text-xs text-blue-300">
-              Speed: {azimuthSpeed.toFixed(1)}% | Mode: {isScanning ? 'AUTO SCAN' : 'MANUAL'}
+              Control: {controlMode.toUpperCase()} | Mode: {isScanning ? 'AUTO SCAN' : 'MANUAL'}
             </div>
           </div>
         </div>
       </div>
 
+      {/* Control Mode Toggle */}
+      <div className="mb-6 flex justify-center">
+        <div className="bg-slate-800/50 p-1 rounded-lg border border-slate-600">
+          <button
+            onClick={() => setControlMode('azimuth')}
+            className={`px-6 py-2 rounded-md font-medium transition-colors ${
+              controlMode === 'azimuth'
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            Azimuth Control
+          </button>
+          <button
+            onClick={() => setControlMode('elevation')}
+            className={`px-6 py-2 rounded-md font-medium transition-colors ${
+              controlMode === 'elevation'
+                ? 'bg-purple-600 text-white'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            Elevation Control
+          </button>
+        </div>
+      </div>
+
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left Column - Enhanced Motor Controls */}
+        {/* Left Column - Motor Controls */}
         <div className="xl:col-span-2 space-y-6">
-          <MotorControlPanel
-            azimuth={azimuth}
-            elevation={elevation}
-            isScanning={isScanning}
-            onAzimuthChange={handleAzimuthChange}
-            onElevationChange={handleElevationChange}
-            onScanToggle={handleScanToggle}
-          />
+          {controlMode === 'azimuth' ? (
+            <MotorControlPanel
+              azimuth={azimuth}
+              elevation={elevation}
+              isScanning={isScanning}
+              onAzimuthChange={handleAzimuthChange}
+              onElevationChange={handleElevationChange}
+              onScanToggle={handleScanToggle}
+            />
+          ) : (
+            <ElevationControlPanel
+              elevation={elevation}
+              isScanning={isScanning}
+              onElevationChange={handleElevationChange}
+              onScanToggle={handleScanToggle}
+            />
+          )}
         </div>
 
         {/* Right Column - 3D Visualization and Status */}
