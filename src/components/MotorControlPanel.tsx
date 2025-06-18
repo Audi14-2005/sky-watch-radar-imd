@@ -31,30 +31,60 @@ export const MotorControlPanel = ({
   const [accelerationRate, setAccelerationRate] = useState([0.3]);
   const [motorMode, setMotorMode] = useState<'manual' | 'auto'>('manual');
 
-  // Mock data for real-time charts
+  // Real-time data arrays - similar to Processing code
   const [speedData, setSpeedData] = useState([
-    { time: 'Past', value: 15 },
-    { time: '0.8s', value: 20 },
-    { time: '1.6s', value: 25 },
-    { time: '2.4s', value: 28 },
-    { time: 'Now', value: 29.6 },
+    { time: '0s', value: 0 },
+    { time: '1s', value: 0 },
+    { time: '2s', value: 0 },
+    { time: '3s', value: 0 },
+    { time: '4s', value: 0 },
   ]);
 
   const [positionData, setPositionData] = useState([
-    { time: 'Past', value: 90 },
-    { time: '0.8s', value: 180 },
-    { time: '1.6s', value: 270 },
-    { time: '2.4s', value: 360 },
-    { time: 'Now', value: azimuth },
+    { time: '0s', value: 0 },
+    { time: '1s', value: 0 },
+    { time: '2s', value: 0 },
+    { time: '3s', value: 0 },
+    { time: '4s', value: azimuth },
   ]);
 
-  // Update position data when azimuth changes
+  // Update graphs when azimuth changes - like Processing's updateHistory()
   useEffect(() => {
-    setPositionData(prev => [
-      ...prev.slice(1),
-      { time: 'Now', value: azimuth }
-    ]);
-  }, [azimuth]);
+    const currentRPM = (speedControl[0] / 100) * 30; // Convert speed percentage to RPM
+    setRpm(currentRPM);
+    
+    // Update speed data
+    setSpeedData(prev => {
+      const newData = [...prev];
+      newData.shift(); // Remove first element
+      newData.push({ 
+        time: `${newData.length}s`, 
+        value: parseFloat(currentRPM.toFixed(1))
+      });
+      return newData;
+    });
+
+    // Update position data with actual azimuth value
+    setPositionData(prev => {
+      const newData = [...prev];
+      newData.shift(); // Remove first element
+      newData.push({ 
+        time: `${newData.length}s`, 
+        value: parseFloat(azimuth.toFixed(1))
+      });
+      return newData;
+    });
+  }, [azimuth, speedControl]);
+
+  // Simulate motor speed based on control input
+  useEffect(() => {
+    const targetSpeed = (speedControl[0] / 100) * 100; // Convert to percentage for display
+    setSpeed(targetSpeed);
+    
+    // Update RPM calculation similar to Processing code
+    const calculatedRPM = Math.abs(speedControl[0] / 100 * 30);
+    setRpm(calculatedRPM);
+  }, [speedControl]);
 
   const handleSpeedPreset = (percentage: number) => {
     setSpeedControl([percentage]);
@@ -83,15 +113,17 @@ export const MotorControlPanel = ({
             </div>
             <div className="bg-slate-700/50 p-3 rounded-lg border border-green-500/20">
               <div className="text-green-200">Speed:</div>
-              <div className="text-xl font-bold text-white">{speed}%</div>
+              <div className="text-xl font-bold text-white">{speed.toFixed(1)}%</div>
             </div>
             <div className="bg-slate-700/50 p-3 rounded-lg border border-yellow-500/20">
               <div className="text-yellow-200">RPM:</div>
-              <div className="text-xl font-bold text-white">{rpm}</div>
+              <div className="text-xl font-bold text-white">{rpm.toFixed(1)}</div>
             </div>
             <div className="bg-slate-700/50 p-3 rounded-lg border border-purple-500/20">
               <div className="text-purple-200">Direction:</div>
-              <div className="text-xl font-bold text-white">CLOCKWISE</div>
+              <div className="text-xl font-bold text-white">
+                {speedControl[0] > 0 ? 'CLOCKWISE' : speedControl[0] < 0 ? 'COUNTER-CW' : 'STOPPED'}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -142,7 +174,7 @@ export const MotorControlPanel = ({
           <div className="mb-6">
             <Label className="text-blue-200 mb-3 block">Speed Presets</Label>
             <div className="grid grid-cols-5 gap-2">
-              {[10, 25, 50, 75, 100].map((percentage) => (
+              {[-100, -50, 0, 50, 100].map((percentage) => (
                 <Button
                   key={percentage}
                   onClick={() => handleSpeedPreset(percentage)}
@@ -154,7 +186,7 @@ export const MotorControlPanel = ({
                       : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'
                   }`}
                 >
-                  {percentage}%
+                  {percentage > 0 ? '+' : ''}{percentage}%
                 </Button>
               ))}
             </div>
@@ -162,12 +194,12 @@ export const MotorControlPanel = ({
 
           {/* Speed Control Slider */}
           <div className="space-y-3 mb-6">
-            <Label className="text-blue-200">Speed Control (%): {speedControl[0]}.0</Label>
+            <Label className="text-blue-200">Speed Control (%): {speedControl[0]}</Label>
             <Slider
               value={speedControl}
               onValueChange={setSpeedControl}
               max={100}
-              min={0}
+              min={-100}
               step={1}
               className="w-full"
             />
@@ -188,7 +220,7 @@ export const MotorControlPanel = ({
         </CardContent>
       </Card>
 
-      {/* Real-time Charts */}
+      {/* Real-time Charts - Updated with live data */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Speed Chart */}
         <Card className="bg-slate-800/50 border-slate-600">
@@ -203,7 +235,7 @@ export const MotorControlPanel = ({
               <LineChart data={speedData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
                 <XAxis dataKey="time" stroke="#94a3b8" />
-                <YAxis stroke="#94a3b8" domain={[0, 35]} />
+                <YAxis stroke="#94a3b8" domain={[-35, 35]} />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: '#1e293b', 
@@ -224,7 +256,7 @@ export const MotorControlPanel = ({
           </CardContent>
         </Card>
 
-        {/* Position Chart */}
+        {/* Position Chart - Now properly updates with azimuth */}
         <Card className="bg-slate-800/50 border-slate-600">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
