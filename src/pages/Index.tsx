@@ -1,14 +1,14 @@
 
 import { useState } from 'react';
 import { RadarDish3D } from '@/components/RadarDish3D';
-import { ControlPanel } from '@/components/ControlPanel';
+import { MotorControlPanel } from '@/components/MotorControlPanel';
 import { DataVisualization } from '@/components/DataVisualization';
 import { StatusPanel } from '@/components/StatusPanel';
 import { NetworkPanel } from '@/components/NetworkPanel';
 import { ExportPanel } from '@/components/ExportPanel';
 
 const Index = () => {
-  const [azimuth, setAzimuth] = useState(0);
+  const [azimuth, setAzimuth] = useState(45.5);
   const [elevation, setElevation] = useState(45);
   const [isScanning, setIsScanning] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'wifi' | 'bluetooth'>('wifi');
@@ -54,10 +54,10 @@ const Index = () => {
       </div>
 
       {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Controls */}
-        <div className="space-y-6">
-          <ControlPanel
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Left Column - Enhanced Motor Controls */}
+        <div className="xl:col-span-2 space-y-6">
+          <MotorControlPanel
             azimuth={azimuth}
             elevation={elevation}
             isScanning={isScanning}
@@ -65,18 +65,9 @@ const Index = () => {
             onElevationChange={handleElevationChange}
             onScanToggle={handleScanToggle}
           />
-          
-          <NetworkPanel
-            connectionMode={connectionMode}
-            onConnectionModeChange={setConnectionMode}
-            isConnected={isConnected}
-            onConnectionToggle={() => setIsConnected(!isConnected)}
-          />
-          
-          <ExportPanel />
         </div>
 
-        {/* Center Column - 3D Visualization */}
+        {/* Right Column - 3D Visualization and Status */}
         <div className="space-y-6">
           <RadarDish3D 
             azimuth={azimuth}
@@ -90,12 +81,21 @@ const Index = () => {
             isScanning={isScanning}
             connectionMode={connectionMode}
           />
-        </div>
 
-        {/* Right Column - Data Visualization */}
-        <div className="space-y-6">
-          <DataVisualization />
+          <NetworkPanel
+            connectionMode={connectionMode}
+            onConnectionModeChange={setConnectionMode}
+            isConnected={isConnected}
+            onConnectionToggle={() => setIsConnected(!isConnected)}
+          />
+          
+          <ExportPanel />
         </div>
+      </div>
+
+      {/* Bottom Row - Data Visualization */}
+      <div className="mt-6">
+        <DataVisualization />
       </div>
     </div>
   );
