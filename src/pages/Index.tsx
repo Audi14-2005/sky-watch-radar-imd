@@ -1,11 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { RadarDish3D } from '@/components/RadarDish3D';
 import { MotorControlPanel } from '@/components/MotorControlPanel';
 import { ElevationControlPanel } from '@/components/ElevationControlPanel';
-import { DataVisualization } from '@/components/DataVisualization';
 import { StatusPanel } from '@/components/StatusPanel';
-import { NetworkPanel } from '@/components/NetworkPanel';
 import { ExportPanel } from '@/components/ExportPanel';
 
 const Index = () => {
@@ -113,14 +110,14 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-4">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-2xl lg:text-3xl font-bold text-white mb-2">
               IMD Radar Control System
             </h1>
             <p className="text-blue-200">Indian Meteorological Department - Scientific Grade Interface</p>
           </div>
-          <div className="text-right">
+          <div className="text-left lg:text-right">
             <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               isConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
             }`}>
@@ -141,7 +138,7 @@ const Index = () => {
         <div className="bg-slate-800/50 p-1 rounded-lg border border-slate-600">
           <button
             onClick={() => setControlMode('azimuth')}
-            className={`px-6 py-2 rounded-md font-medium transition-colors ${
+            className={`px-4 lg:px-6 py-2 rounded-md font-medium transition-colors ${
               controlMode === 'azimuth'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-300 hover:text-white'
@@ -151,7 +148,7 @@ const Index = () => {
           </button>
           <button
             onClick={() => setControlMode('elevation')}
-            className={`px-6 py-2 rounded-md font-medium transition-colors ${
+            className={`px-4 lg:px-6 py-2 rounded-md font-medium transition-colors ${
               controlMode === 'elevation'
                 ? 'bg-purple-600 text-white'
                 : 'text-slate-300 hover:text-white'
@@ -163,9 +160,9 @@ const Index = () => {
       </div>
 
       {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left Column - Motor Controls */}
-        <div className="xl:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Left Section - Motor Controls */}
+        <div className="xl:col-span-3 space-y-6">
           {controlMode === 'azimuth' ? (
             <MotorControlPanel
               azimuth={azimuth}
@@ -185,8 +182,8 @@ const Index = () => {
           )}
         </div>
 
-        {/* Right Column - 3D Visualization and Status */}
-        <div className="space-y-6">
+        {/* Right Section - 3D Visualization and Status */}
+        <div className="xl:col-span-1 space-y-6">
           <RadarDish3D 
             azimuth={azimuth}
             elevation={elevation}
@@ -199,21 +196,9 @@ const Index = () => {
             isScanning={isScanning}
             connectionMode={connectionMode}
           />
-
-          <NetworkPanel
-            connectionMode={connectionMode}
-            onConnectionModeChange={setConnectionMode}
-            isConnected={isConnected}
-            onConnectionToggle={() => setIsConnected(!isConnected)}
-          />
           
           <ExportPanel />
         </div>
-      </div>
-
-      {/* Bottom Row - Data Visualization */}
-      <div className="mt-6">
-        <DataVisualization />
       </div>
     </div>
   );
