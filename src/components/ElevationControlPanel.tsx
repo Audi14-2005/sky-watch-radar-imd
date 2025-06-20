@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -13,66 +12,35 @@ interface ElevationControlPanelProps {
   isScanning: boolean;
   onElevationChange: (value: number) => void;
   onScanToggle: () => void;
+  elevationSmoothing: number;
+  onElevationSmoothingChange: (value: number[]) => void;
+  elevationHistory: number[];
+  elevationSpeedHistory: number[];
 }
 
 export const ElevationControlPanel = ({
   elevation,
   isScanning,
   onElevationChange,
-  onScanToggle
+  onScanToggle,
+  elevationSmoothing,
+  onElevationSmoothingChange,
+  elevationHistory,
+  elevationSpeedHistory
 }: ElevationControlPanelProps) => {
   const [targetElevation, setTargetElevation] = useState(elevation);
   const [elevationSpeed, setElevationSpeed] = useState(0);
   const [isMoving, setIsMoving] = useState(false);
   const [elevationControl, setElevationControl] = useState([elevation]);
-  const [elevationSmoothing, setElevationSmoothing] = useState([0.1]);
 
-  // Real-time data arrays for elevation tracking
-  const [elevationData, setElevationData] = useState([
-    { time: '0s', value: elevation },
-    { time: '1s', value: elevation },
-    { time: '2s', value: elevation },
-    { time: '3s', value: elevation },
-    { time: '4s', value: elevation },
-  ]);
+  // Remove any local elevationData, elevationSpeedData, use only simulation histories
 
-  const [elevationSpeedData, setElevationSpeedData] = useState([
-    { time: '0s', value: 0 },
-    { time: '1s', value: 0 },
-    { time: '2s', value: 0 },
-    { time: '3s', value: 0 },
-    { time: '4s', value: 0 },
-  ]);
-
-  // Update graphs when elevation changes
   useEffect(() => {
     // Calculate speed based on elevation change
-    const currentSpeed = Math.abs(targetElevation - elevation) > 0.1 ? 
+    const currentSpeed = Math.abs(targetElevation - elevation) > 0.1 ?
       (targetElevation - elevation) * 10 : 0;
     setElevationSpeed(currentSpeed);
     setIsMoving(Math.abs(targetElevation - elevation) > 0.1);
-    
-    // Update elevation data
-    setElevationData(prev => {
-      const newData = [...prev];
-      newData.shift();
-      newData.push({ 
-        time: `${newData.length}s`, 
-        value: parseFloat(elevation.toFixed(1))
-      });
-      return newData;
-    });
-
-    // Update speed data
-    setElevationSpeedData(prev => {
-      const newData = [...prev];
-      newData.shift();
-      newData.push({ 
-        time: `${newData.length}s`, 
-        value: parseFloat(currentSpeed.toFixed(1))
-      });
-      return newData;
-    });
   }, [elevation, targetElevation]);
 
   const handleElevationPreset = (angle: number) => {
@@ -138,11 +106,10 @@ export const ElevationControlPanel = ({
             </Button>
             <Button
               onClick={onScanToggle}
-              className={`font-medium ${
-                isScanning 
-                  ? 'bg-red-600 hover:bg-red-700' 
-                  : 'bg-green-600 hover:bg-green-700'
-              }`}
+              className={`font-medium ${isScanning
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-green-600 hover:bg-green-700'
+                }`}
             >
               <Square className="w-4 h-4 mr-2" />
               {isScanning ? 'STOP' : 'SCAN'}
@@ -172,11 +139,10 @@ export const ElevationControlPanel = ({
                   onClick={() => handleElevationPreset(angle)}
                   variant="outline"
                   size="sm"
-                  className={`${
-                    Math.abs(targetElevation - angle) < 1
-                      ? 'bg-purple-600 border-purple-500 text-white'
-                      : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'
-                  }`}
+                  className={`${Math.abs(targetElevation - angle) < 1
+                    ? 'bg-purple-600 border-purple-500 text-white'
+                    : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'
+                    }`}
                 >
                   {angle}°
                 </Button>
@@ -199,10 +165,10 @@ export const ElevationControlPanel = ({
 
           {/* Smoothing Rate */}
           <div className="space-y-3">
-            <Label className="text-purple-200">Movement Smoothing: {elevationSmoothing[0].toFixed(2)}</Label>
+            <Label className="text-purple-200">Movement Smoothing: {elevationSmoothing.toFixed(2)}</Label>
             <Slider
-              value={elevationSmoothing}
-              onValueChange={setElevationSmoothing}
+              value={[elevationSmoothing]}
+              onValueChange={onElevationSmoothingChange}
               max={1}
               min={0.01}
               step={0.01}
@@ -224,24 +190,24 @@ export const ElevationControlPanel = ({
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={elevationData}>
+              <LineChart data={elevationHistory.map((v, i) => ({ time: `${i - elevationHistory.length + 1 + 200}s`, value: v }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(168, 85, 247, 0.2)" />
                 <XAxis dataKey="time" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" domain={[0, 90]} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1e293b', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
                     border: '1px solid #475569',
                     borderRadius: '8px',
                     color: '#fff'
-                  }} 
+                  }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#a855f7" 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#a855f7"
                   strokeWidth={3}
-                  dot={{ fill: '#a855f7', strokeWidth: 2, r: 5 }}
+                  dot={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -258,24 +224,24 @@ export const ElevationControlPanel = ({
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={elevationSpeedData}>
+              <LineChart data={elevationSpeedHistory.map((v, i) => ({ time: `${i - elevationSpeedHistory.length + 1 + 200}s`, value: v * 10 }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
                 <XAxis dataKey="time" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" domain={[-20, 20]} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1e293b', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
                     border: '1px solid #475569',
                     borderRadius: '8px',
                     color: '#fff'
-                  }} 
+                  }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#3b82f6"
                   strokeWidth={3}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 5 }}
+                  dot={false}
                 />
               </LineChart>
             </ResponsiveContainer>

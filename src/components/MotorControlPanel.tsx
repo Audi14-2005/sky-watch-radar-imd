@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -15,6 +14,12 @@ interface MotorControlPanelProps {
   onAzimuthChange: (value: number) => void;
   onElevationChange: (value: number) => void;
   onScanToggle: () => void;
+  azimuthAcceleration: number;
+  onAzimuthAccelerationChange: (value: number[]) => void;
+  motorMode: 'manual' | 'auto';
+  onMotorModeChange: (mode: 'manual' | 'auto') => void;
+  azimuthHistory: number[];
+  azimuthSpeedHistory: number[];
 }
 
 export const MotorControlPanel = ({
@@ -23,68 +28,17 @@ export const MotorControlPanel = ({
   isScanning,
   onAzimuthChange,
   onElevationChange,
-  onScanToggle
+  onScanToggle,
+  azimuthAcceleration,
+  onAzimuthAccelerationChange,
+  motorMode,
+  onMotorModeChange,
+  azimuthHistory,
+  azimuthSpeedHistory
 }: MotorControlPanelProps) => {
   const [speed, setSpeed] = useState(98.9);
   const [rpm, setRpm] = useState(29.7);
   const [speedControl, setSpeedControl] = useState([100]);
-  const [accelerationRate, setAccelerationRate] = useState([0.3]);
-  const [motorMode, setMotorMode] = useState<'manual' | 'auto'>('manual');
-
-  // Real-time data arrays - similar to Processing code
-  const [speedData, setSpeedData] = useState([
-    { time: '0s', value: 0 },
-    { time: '1s', value: 0 },
-    { time: '2s', value: 0 },
-    { time: '3s', value: 0 },
-    { time: '4s', value: 0 },
-  ]);
-
-  const [positionData, setPositionData] = useState([
-    { time: '0s', value: 0 },
-    { time: '1s', value: 0 },
-    { time: '2s', value: 0 },
-    { time: '3s', value: 0 },
-    { time: '4s', value: azimuth },
-  ]);
-
-  // Update graphs when azimuth changes - like Processing's updateHistory()
-  useEffect(() => {
-    const currentRPM = (speedControl[0] / 100) * 30; // Convert speed percentage to RPM
-    setRpm(currentRPM);
-    
-    // Update speed data
-    setSpeedData(prev => {
-      const newData = [...prev];
-      newData.shift(); // Remove first element
-      newData.push({ 
-        time: `${newData.length}s`, 
-        value: parseFloat(currentRPM.toFixed(1))
-      });
-      return newData;
-    });
-
-    // Update position data with actual azimuth value
-    setPositionData(prev => {
-      const newData = [...prev];
-      newData.shift(); // Remove first element
-      newData.push({ 
-        time: `${newData.length}s`, 
-        value: parseFloat(azimuth.toFixed(1))
-      });
-      return newData;
-    });
-  }, [azimuth, speedControl]);
-
-  // Simulate motor speed based on control input
-  useEffect(() => {
-    const targetSpeed = (speedControl[0] / 100) * 100; // Convert to percentage for display
-    setSpeed(targetSpeed);
-    
-    // Update RPM calculation similar to Processing code
-    const calculatedRPM = Math.abs(speedControl[0] / 100 * 30);
-    setRpm(calculatedRPM);
-  }, [speedControl]);
 
   const handleSpeedPreset = (percentage: number) => {
     setSpeedControl([percentage]);
@@ -142,11 +96,10 @@ export const MotorControlPanel = ({
             </Button>
             <Button
               onClick={onScanToggle}
-              className={`font-medium ${
-                isScanning 
-                  ? 'bg-red-600 hover:bg-red-700' 
-                  : 'bg-green-600 hover:bg-green-700'
-              }`}
+              className={`font-medium ${isScanning
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-green-600 hover:bg-green-700'
+                }`}
             >
               <Square className="w-4 h-4 mr-2" />
               {isScanning ? 'STOP' : 'START'}
@@ -159,12 +112,11 @@ export const MotorControlPanel = ({
               RC
             </Button>
             <Button
-              onClick={() => setMotorMode(motorMode === 'manual' ? 'auto' : 'manual')}
-              className={`font-medium ${
-                motorMode === 'manual' 
-                  ? 'bg-orange-600 hover:bg-orange-700' 
-                  : 'bg-cyan-600 hover:bg-cyan-700'
-              }`}
+              onClick={() => onMotorModeChange(motorMode === 'manual' ? 'auto' : 'manual')}
+              className={`font-medium ${motorMode === 'manual'
+                ? 'bg-orange-600 hover:bg-orange-700'
+                : 'bg-cyan-600 hover:bg-cyan-700'
+                }`}
             >
               {motorMode === 'manual' ? 'MANUAL MODE' : 'AUTO MODE'}
             </Button>
@@ -180,11 +132,10 @@ export const MotorControlPanel = ({
                   onClick={() => handleSpeedPreset(percentage)}
                   variant="outline"
                   size="sm"
-                  className={`${
-                    speedControl[0] === percentage
-                      ? 'bg-blue-600 border-blue-500 text-white'
-                      : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'
-                  }`}
+                  className={`${speedControl[0] === percentage
+                    ? 'bg-blue-600 border-blue-500 text-white'
+                    : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'
+                    }`}
                 >
                   {percentage > 0 ? '+' : ''}{percentage}%
                 </Button>
@@ -207,10 +158,10 @@ export const MotorControlPanel = ({
 
           {/* Acceleration Rate */}
           <div className="space-y-3">
-            <Label className="text-blue-200">Acceleration Rate: {accelerationRate[0]}</Label>
+            <Label className="text-blue-200">Acceleration Rate: {azimuthAcceleration}</Label>
             <Slider
-              value={accelerationRate}
-              onValueChange={setAccelerationRate}
+              value={[azimuthAcceleration]}
+              onValueChange={onAzimuthAccelerationChange}
               max={1}
               min={0}
               step={0.1}
@@ -220,7 +171,7 @@ export const MotorControlPanel = ({
         </CardContent>
       </Card>
 
-      {/* Real-time Charts - Updated with live data */}
+      {/* Real-time Charts - Updated with simulation data */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Speed Chart */}
         <Card className="bg-slate-800/50 border-slate-600">
@@ -232,24 +183,24 @@ export const MotorControlPanel = ({
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={speedData}>
+              <LineChart data={azimuthSpeedHistory.map((v, i) => ({ time: `${i - azimuthSpeedHistory.length + 1 + 200}s`, value: v * 30 / 100 }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
                 <XAxis dataKey="time" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" domain={[-35, 35]} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1e293b', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
                     border: '1px solid #475569',
                     borderRadius: '8px',
                     color: '#fff'
-                  }} 
+                  }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#06b6d4" 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#06b6d4"
                   strokeWidth={3}
-                  dot={{ fill: '#06b6d4', strokeWidth: 2, r: 5 }}
+                  dot={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -266,24 +217,24 @@ export const MotorControlPanel = ({
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={positionData}>
+              <LineChart data={azimuthHistory.map((v, i) => ({ time: `${i - azimuthHistory.length + 1 + 200}s`, value: v }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(59, 130, 246, 0.2)" />
                 <XAxis dataKey="time" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" domain={[0, 360]} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1e293b', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1e293b',
                     border: '1px solid #475569',
                     borderRadius: '8px',
                     color: '#fff'
-                  }} 
+                  }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#eab308" 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#eab308"
                   strokeWidth={3}
-                  dot={{ fill: '#eab308', strokeWidth: 2, r: 5 }}
+                  dot={false}
                 />
               </LineChart>
             </ResponsiveContainer>
